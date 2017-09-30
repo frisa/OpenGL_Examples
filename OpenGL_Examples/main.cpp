@@ -98,11 +98,20 @@ void openGLRendering(const GLuint shaderProgram, const GLuint VBO, const GLuint 
 	glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
 
 	// create transformations
-	glm::mat4 transform;
-	transform = glm::translate(transform, glm::vec3(0.5f, -0.5f, 0.0f));
-	transform = glm::rotate(transform, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
-	unsigned int transformLoc = glGetUniformLocation(shaderProgram, "transform");
-	glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
+	glm::mat4 model;
+	model = glm::rotate(model, glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	glm::mat4 view;
+	// note that we're translating the scene in the reverse direction of where we want to move
+	view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+
+	glm::mat4 projection;
+	GLfloat screenWidth = 800;
+	GLfloat screenHeight = 600;
+	projection = glm::perspective(glm::radians(45.0f), screenWidth / screenHeight, 0.1f, 100.0f);
+
+	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
+	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
+	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
 	/* Clear the window */
 	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
