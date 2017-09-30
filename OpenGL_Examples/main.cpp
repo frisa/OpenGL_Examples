@@ -106,17 +106,16 @@ void openGLRendering(const GLuint shaderProgram, const GLuint VBO, const GLuint 
 
 void openGLPrepare(GLuint& VBO, GLuint& EBO, GLuint& VAO)
 {
-	/* Vertex Array for rectangle */
-	float verticesRectangle[] = {
-		0.5f,  0.5f, 0.0f,  // top right
-		0.5f, -0.5f, 0.0f,  // bottom right
-		-0.5f, -0.5f, 0.0f,  // bottom left
-		-0.5f,  0.5f, 0.0f   // top left 
+	float vertices[] = {
+		/*   positions	*/		/*   colors   */
+		0.5f, -0.5f, 0.0f,		1.0f, 0.0f, 0.0f,   // bottom right
+		-0.5f, -0.5f, 0.0f,		0.0f, 1.0f, 0.0f,   // bottom left
+		0.0f,  0.5f, 0.0f,		0.0f, 0.0f, 1.0f    // top 
 	};
+
 	/* Element Array for Recangle */
 	unsigned int indices[] = {  // note that we start from 0!
-		0, 1, 3,   // first triangle
-		1, 2, 3    // second triangle
+		0, 1, 2,   // first triangle
 	};
 
 	/* Get the amount of Vertex Attributes supported by hardware */
@@ -127,7 +126,7 @@ void openGLPrepare(GLuint& VBO, GLuint& EBO, GLuint& VAO)
 	/* Create Vertex Buffer for Rectangle */
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(verticesRectangle), verticesRectangle, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
 	/* Create Element Array for Rectangle */
 	glGenBuffers(1, &EBO);
@@ -137,8 +136,12 @@ void openGLPrepare(GLuint& VBO, GLuint& EBO, GLuint& VAO)
 	/* Create Vertex Attribute Object for Rectangle */
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	/* The vertex position attribute */
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
+	/* The vertex color atribute */
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3* sizeof(float)));
+	glEnableVertexAttribArray(1);
 }
 
 GLuint uiLoadShadersToProgram(const char* cVertexShaderPath, const char* cFragmentShaderPath, bool bMakeDefault)
