@@ -7,8 +7,8 @@
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
-void openGLRendering(const GLuint shaderProgram, const GLuint VBO, const GLuint EBO, const GLuint VAO, const GLuint texture);
-void openGLPrepare(GLuint& VBO, GLuint& EBO, GLuint& VAO, GLuint& texture);
+void openGLRendering(const GLuint shaderProgram, const GLuint VBO, const GLuint EBO, const GLuint VAO, const GLuint texture1, const GLuint texture2);
+void openGLPrepare(GLuint& VBO, GLuint& EBO, GLuint& VAO, GLuint& texture1, GLuint& texture2, const GLuint uiShaderProgram);
 GLuint uiLoadShadersToProgram(const char* cVertexShaderPath, const char* cFragmentShaderPath, bool bMakeDefault);
 
 int main()
@@ -16,7 +16,7 @@ int main()
 	GLuint uiVAO;
 	GLuint uiEBO;
 	GLuint uiVBO;
-	GLuint uiTexture;
+	GLuint uiTexture1, uiTexture2;
 	GLuint uiShaderProgram;
 
 	glfwInit();
@@ -50,7 +50,7 @@ int main()
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
 	uiShaderProgram = uiLoadShadersToProgram("../OpenGL_Examples/shader.vert", "../OpenGL_Examples/shader.frag", false);
-	openGLPrepare(uiVBO, uiEBO, uiVAO, uiTexture);
+	openGLPrepare(uiVBO, uiEBO, uiVAO, uiTexture1, uiTexture2, uiShaderProgram);
 	/* This is the main rendering loop */
 	while (!glfwWindowShouldClose(window))
 	{
@@ -58,7 +58,7 @@ int main()
 		processInput(window);
 
 		/* Rendering commands */
-		openGLRendering(uiShaderProgram, uiVBO, uiEBO, uiVAO, uiTexture);
+		openGLRendering(uiShaderProgram, uiVBO, uiEBO, uiVAO, uiTexture1, uiTexture2);
 
 		/* Get the event and swap buffer */
 		glfwPollEvents();
@@ -82,7 +82,7 @@ void processInput(GLFWwindow *window)
 		glfwSetWindowShouldClose(window, true);
 }
 
-void openGLRendering(const GLuint shaderProgram, const GLuint VBO, const GLuint EBO, const GLuint VAO, const GLuint texture)
+void openGLRendering(const GLuint shaderProgram, const GLuint VBO, const GLuint EBO, const GLuint VAO, const GLuint texture1, const GLuint texture2)
 {
 	float timeValue = glfwGetTime();
 	float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
@@ -93,12 +93,16 @@ void openGLRendering(const GLuint shaderProgram, const GLuint VBO, const GLuint 
 	vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
 	glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
 
+
 	/* Clear the window */
 	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	/* Bind the Buffers */
-	glBindTexture(GL_TEXTURE_2D, texture);
+	glActiveTexture(GL_TEXTURE0); 
+	glBindTexture(GL_TEXTURE_2D, texture1);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, texture2);
 	glBindVertexArray(VAO);
 
 	/* Set the wireframe mode GL_LINE or GL_FILL*/
@@ -108,7 +112,7 @@ void openGLRendering(const GLuint shaderProgram, const GLuint VBO, const GLuint 
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
-void openGLPrepare(GLuint& VBO, GLuint& EBO, GLuint& VAO, GLuint& texture)
+void openGLPrepare(GLuint& VBO, GLuint& EBO, GLuint& VAO, GLuint& texture1, GLuint& texture2, const GLuint uiShaderProgram)
 {
 	float vertices[] = {
 		// positions          // colors           // texture coords
@@ -130,19 +134,18 @@ void openGLPrepare(GLuint& VBO, GLuint& EBO, GLuint& VAO, GLuint& texture)
 		0.5f, 1.0f   // top-center corner
 	};
 
-	/* Set the texture for the vertexes */
-	glGenTextures(1, &texture);
-	glBindTexture(GL_TEXTURE_2D, texture);
+	/* Set the texture 1 for the vertexes */
+	glGenTextures(1, &texture1);
+	glBindTexture(GL_TEXTURE_2D, texture1);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	float borderColor[] = { 1.0f, 1.0f, 0.0f, 1.0f };
 	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	/* Generate the texture from the file */
 	int width, height, nrChannels;
 	unsigned char *data = stbi_load("container.jpg", &width, &height, &nrChannels, 0);
 	if (data)
@@ -155,6 +158,32 @@ void openGLPrepare(GLuint& VBO, GLuint& EBO, GLuint& VAO, GLuint& texture)
 	{
 		std::cout << "Cannot load the texture" << std::endl;
 	}
+
+	/* Set the texture 1 for the vertexes */
+	glGenTextures(1, &texture2);
+	glBindTexture(GL_TEXTURE_2D, texture2);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	stbi_set_flip_vertically_on_load(true);
+	data = stbi_load("awesomeface.png", &width, &height, &nrChannels, 0);
+	if (data)
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+		stbi_image_free(data);
+	}
+	else
+	{
+		std::cout << "Cannot load the texture" << std::endl;
+	}
+	glUseProgram(uiShaderProgram);
+	glUniform1i(glGetUniformLocation(uiShaderProgram, "texture1"), 0); // set it manually
+	glUniform1i(glGetUniformLocation(uiShaderProgram, "texture2"), 1); // set it manually
 
 	/* Get the amount of Vertex Attributes supported by hardware */
 	int nrAttributes;
