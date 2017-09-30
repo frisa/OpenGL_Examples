@@ -3,18 +3,20 @@
 #include <fstream>
 #include <../../glad/include/glad/glad.h>
 #include <GLFW/glfw3.h>
+#include "stb_image.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
-void openGLRendering(const GLuint shaderProgram, const GLuint VBO, const GLuint EBO, const GLuint VAO);
-void openGLPrepare(GLuint& VBO, GLuint& EBO, GLuint& VAO);
+void openGLRendering(const GLuint shaderProgram, const GLuint VBO, const GLuint EBO, const GLuint VAO, const GLuint texture);
+void openGLPrepare(GLuint& VBO, GLuint& EBO, GLuint& VAO, GLuint& texture);
 GLuint uiLoadShadersToProgram(const char* cVertexShaderPath, const char* cFragmentShaderPath, bool bMakeDefault);
 
 int main()
 {
-	GLuint u32VAO;
-	GLuint u32EBO;
-	GLuint u32VBO;
+	GLuint uiVAO;
+	GLuint uiEBO;
+	GLuint uiVBO;
+	GLuint uiTexture;
 	GLuint uiShaderProgram;
 
 	glfwInit();
@@ -48,7 +50,7 @@ int main()
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
 	uiShaderProgram = uiLoadShadersToProgram("../OpenGL_Examples/shader.vert", "../OpenGL_Examples/shader.frag", false);
-	openGLPrepare(u32VBO, u32EBO, u32VAO);
+	openGLPrepare(uiVBO, uiEBO, uiVAO, uiTexture);
 	/* This is the main rendering loop */
 	while (!glfwWindowShouldClose(window))
 	{
@@ -56,12 +58,15 @@ int main()
 		processInput(window);
 
 		/* Rendering commands */
-		openGLRendering(uiShaderProgram, u32VBO, u32EBO, u32VAO);
+		openGLRendering(uiShaderProgram, uiVBO, uiEBO, uiVAO, uiTexture);
 
 		/* Get the event and swap buffer */
 		glfwPollEvents();
 		glfwSwapBuffers(window);
 	}
+	glDeleteVertexArrays(1, &uiVAO);
+	glDeleteBuffers(1, &uiVBO);
+	glDeleteBuffers(1, &uiEBO);
 	glfwTerminate();
 	return 0;
 }
@@ -77,7 +82,7 @@ void processInput(GLFWwindow *window)
 		glfwSetWindowShouldClose(window, true);
 }
 
-void openGLRendering(const GLuint shaderProgram, const GLuint VBO, const GLuint EBO, const GLuint VAO)
+void openGLRendering(const GLuint shaderProgram, const GLuint VBO, const GLuint EBO, const GLuint VAO, const GLuint texture)
 {
 	float timeValue = glfwGetTime();
 	float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
@@ -93,9 +98,8 @@ void openGLRendering(const GLuint shaderProgram, const GLuint VBO, const GLuint 
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	/* Bind the Buffers */
+	glBindTexture(GL_TEXTURE_2D, texture);
 	glBindVertexArray(VAO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
 	/* Set the wireframe mode GL_LINE or GL_FILL*/
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -104,44 +108,84 @@ void openGLRendering(const GLuint shaderProgram, const GLuint VBO, const GLuint 
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
-void openGLPrepare(GLuint& VBO, GLuint& EBO, GLuint& VAO)
+void openGLPrepare(GLuint& VBO, GLuint& EBO, GLuint& VAO, GLuint& texture)
 {
 	float vertices[] = {
-		/*   positions	*/		/*   colors   */
-		0.5f, -0.5f, 0.0f,		1.0f, 0.0f, 0.0f,   // bottom right
-		-0.5f, -0.5f, 0.0f,		0.0f, 1.0f, 0.0f,   // bottom left
-		0.0f,  0.5f, 0.0f,		0.0f, 0.0f, 1.0f    // top 
+		// positions          // colors           // texture coords
+		0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
+		0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
+		-0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
+		-0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // top left 
 	};
 
 	/* Element Array for Recangle */
 	unsigned int indices[] = {  // note that we start from 0!
-		0, 1, 2,   // first triangle
+		0, 1, 3,				// first triangle
+		1, 2, 3					// second triangle
 	};
+
+	float texCoords[] = {
+		0.0f, 0.0f,  // lower-left corner  
+		1.0f, 0.0f,  // lower-right corner
+		0.5f, 1.0f   // top-center corner
+	};
+
+	/* Set the texture for the vertexes */
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	float borderColor[] = { 1.0f, 1.0f, 0.0f, 1.0f };
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	/* Generate the texture from the file */
+	int width, height, nrChannels;
+	unsigned char *data = stbi_load("container.jpg", &width, &height, &nrChannels, 0);
+	if (data)
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+		stbi_image_free(data);
+	}
+	else
+	{
+		std::cout << "Cannot load the texture" << std::endl;
+	}
 
 	/* Get the amount of Vertex Attributes supported by hardware */
 	int nrAttributes;
 	glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
 	std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
-
-	/* Create Vertex Buffer for Rectangle */
+	/* Prepare the vertex/elements arrays */
+	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EBO);
+
+	glBindVertexArray(VAO);
+
+	/* Create Vertex Buffer */
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-	/* Create Element Array for Rectangle */
-	glGenBuffers(1, &EBO);
+	/* Create Element Array */
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-	/* Create Vertex Attribute Object for Rectangle */
-	glGenVertexArrays(1, &VAO);
-	glBindVertexArray(VAO);
 	/* The vertex position attribute */
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
-	/* The vertex color atribute */
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3* sizeof(float)));
+
+	/* The vertex color attribute */
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3* sizeof(float)));
 	glEnableVertexAttribArray(1);
+
+	/* The vertex texture attribute */
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glEnableVertexAttribArray(2);
 }
 
 GLuint uiLoadShadersToProgram(const char* cVertexShaderPath, const char* cFragmentShaderPath, bool bMakeDefault)
