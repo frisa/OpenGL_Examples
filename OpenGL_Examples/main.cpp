@@ -5,6 +5,10 @@
 #include <GLFW/glfw3.h>
 #include "stb_image.h"
 
+#include <../../glm/glm.hpp>
+#include <../../glm/gtc/matrix_transform.hpp>
+#include <../../glm/gtc/type_ptr.hpp>
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
 void openGLRendering(const GLuint shaderProgram, const GLuint VBO, const GLuint EBO, const GLuint VAO, const GLuint texture1, const GLuint texture2);
@@ -93,6 +97,12 @@ void openGLRendering(const GLuint shaderProgram, const GLuint VBO, const GLuint 
 	vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
 	glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
 
+	// create transformations
+	glm::mat4 transform;
+	transform = glm::translate(transform, glm::vec3(0.5f, -0.5f, 0.0f));
+	transform = glm::rotate(transform, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
+	unsigned int transformLoc = glGetUniformLocation(shaderProgram, "transform");
+	glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
 
 	/* Clear the window */
 	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
