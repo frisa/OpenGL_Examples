@@ -116,6 +116,23 @@ void openGLRendering(const GLuint shaderProgram, const GLuint VBO, const GLuint 
 	glm::mat4 view;
 	// note that we're translating the scene in the reverse direction of where we want to move
 	view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+	/* set the camera position vector */
+	glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+	/* Point camera to the scene origin */
+	glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
+	glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget);		// 1. Direction
+	glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+	glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));	// 2. Right Vector
+	glm::vec3 cameraUp = glm::cross(cameraDirection, cameraRight);				// 3. Up Vector
+	view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f),
+		glm::vec3(0.0f, 0.0f, 0.0f),
+		glm::vec3(0.0f, 1.0f, 0.0f));
+
+	/* Change the camera view */
+	float radius = 10.0f;
+	float camX = sin(glfwGetTime()) * radius;
+	float camZ = cos(glfwGetTime()) * radius;
+	view = glm::lookAt(glm::vec3(camX, 0.0, camZ), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
 
 	glm::mat4 projection;
 	GLfloat screenWidth = 800;
